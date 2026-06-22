@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solutions & More — Print Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f5f5;
+    --surface: #ffffff;
+    --surface2: #f0f0f0;
+    --border: #e0e0e0;
+    --accent: #333333;
+    --accent2: #555555;
+    --text: #1a1a1a;
+    --muted: #888888;
+    --success: #2e7d52;
+    --danger: #c0392b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* GRID LINES BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.4rem, 6vw, 3.6rem);
+    letter-spacing: 2px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .logo span {
+    color: var(--accent);
+  }
+
+  .badge {
+    background: var(--accent);
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    padding: 4px 10px;
+    text-transform: uppercase;
+    border-radius: 2px;
+    margin-bottom: 6px;
+  }
+
+  /* TWO COLUMN LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 320px 380px;
+    gap: 24px;
+    align-items: start;
+  }
+  @media(max-width: 900px) {
+    .layout { grid-template-columns: 1fr 300px; }
+    .breakdown-col { grid-column: 1 / -1; }
+  }
+  @media(max-width: 600px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* PANELS */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .panel-head {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .panel-head .icon {
+    width: 22px;
+    height: 22px;
+    background: var(--accent);
+    border-radius: 3px;
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    color: #fff;
+  }
+
+  .panel-head h2 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .panel-body { padding: 20px; }
+
+  /* FORM FIELDS */
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+
+  label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  input, select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    border-radius: 4px;
+    width: 100%;
+    transition: border-color 0.18s;
+    appearance: none;
+  }
+
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  input[type="number"] { -moz-appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button { display: none; }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .input-wrap .unit {
+    position: absolute;
+    right: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .input-wrap input { padding-right: 36px; }
+
+  /* TOGGLES */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    cursor: pointer;
+  }
+  .toggle-label {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--text);
+  }
+  .toggle-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+  .toggle {
+    width: 38px;
+    height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: var(--muted);
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: all 0.2s;
+  }
+  .toggle.on { background: rgba(0,0,0,0.15); }
+  .toggle.on::after { background: var(--accent); left: 21px; }
+
+  /* DIVIDER */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 20px 0;
+  }
+
+  /* RIGHT PANEL — SUMMARY */
+  .summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .summary-item:last-child { border-bottom: none; }
+  .summary-label { color: var(--muted); font-size: 0.8rem; }
+  .summary-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.88rem;
+    color: var(--text);
+  }
+
+  /* BIG TOTAL */
+  .total-box {
+    background: linear-gradient(135deg, rgba(0,0,0,0.03), rgba(0,0,0,0.01));
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    margin-top: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .total-box::before {
+    content: '$';
+    position: absolute;
+    right: -10px;
+    top: -16px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 7rem;
+    color: rgba(0,0,0,0.04);
+    pointer-events: none;
+  }
+
+  .total-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .total-amount {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.2rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+
+  .total-per {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* CTA */
+  .btn {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 14px;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .btn:hover { background: #111111; }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: transparent; }
+
+  /* MATERIAL INFO STRIP */
+  .mat-info {
+    display: flex;
+    gap: 10px;
+    background: rgba(0,0,0,0.03);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+    align-items: flex-start;
+  }
+  .mat-info-icon { font-size: 1.3rem; flex-shrink: 0; }
+  .mat-info-text { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+  .mat-info-text strong { color: var(--text); display: block; margin-bottom: 2px; font-size: 0.82rem; }
+
+  /* SECTION TITLE */
+  .sec-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sec-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* QUOTE HISTORY */
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    gap: 8px;
+  }
+  .history-item:hover { color: var(--accent); }
+  .history-item:last-child { border-bottom: none; }
+  .hist-mat { font-weight: 500; min-width: 80px; }
+  .hist-size { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); flex: 1; }
+  .hist-price { font-family: 'DM Mono', monospace; color: var(--success); }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 30px 10px;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  /* PROFIT METER */
+  .profit-bar-wrap {
+    margin-top: 12px;
+  }
+  .profit-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  .profit-bar-track {
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .profit-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--success), var(--accent));
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .tag-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .tag {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+  }
+  .tag.active { border-color: var(--accent); color: var(--accent); }
+
+  /* LABOR TIERS */
+  .labor-tier-row.active {
+    background: rgba(0,0,0,0.05);
+    border-color: rgba(0,0,0,0.2) !important;
+  }
+  .labor-tier-row.active div {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* TIER ROWS */
+  .tier-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .tier-row input {
+    text-align: center;
+  }
+
+  /* ANIMATE IN */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .panel { animation: fadeUp 0.4s ease both; }
+  .panel:nth-child(2) { animation-delay: 0.1s; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <div>
+      <div class="badge">Wide Media Tool</div>
+      <div class="logo">Solutions <span>&</span> More</div>
+      <div style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:4px;">Calculator</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:1px;">SQ FT PRICING ENGINE</div>
+      <div id="currentDate" style="font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--accent);margin-top:4px;"></div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT COLUMN -->
+    <div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="icon">▦</div>
+          <h2>Configure Your Print</h2>
+        </div>
+        <div class="panel-body">
+
+          <!-- PROJECT NAME -->
+          <div class="field" style="margin-bottom:16px;">
+            <label style="font-size:0.7rem;letter-spacing:2px;">Project Name</label>
+            <input type="text" id="projectName" placeholder="e.g. ABC Store — Window Decals" style="font-family:'DM Sans',sans-serif;font-size:0.95rem;">
+          </div>
+
+          <!-- MATERIAL DROPDOWN -->
+          <div class="sec-title">Material</div>
+          <div class="field" style="margin-bottom:16px;">
+            <select id="materialSelect" onchange="selectMaterial(this.value)" style="font-family:'DM Sans',sans-serif;font-size:0.95rem;">
+            </select>
+          </div>
+
+          <!-- ACRYLIC SUB-TYPE -->
+          <div id="acrylicOptions" style="display:none;margin-top:-10px;margin-bottom:16px;">
+            <div class="sec-title" style="margin-top:0;">Acrylic Type</div>
+            <div class="field">
+              <select id="acrylicType" onchange="calculate()">
+                <option value="2.20">1/8" Clear Acrylic — $2.20/ft²</option>
+                <option value="1.09">1/16" Clear Acrylic — $1.09/ft²</option>
+                <option value="1.91">1/8" White Acrylic — $1.91/ft²</option>
+                <option value="2.13">1/8" P95 Acrylic — $2.13/ft²</option>
+                <option value="2.38">3/16" Clear Acrylic — $2.38/ft²</option>
+                <option value="3.69">1/4" Clear Acrylic — $3.69/ft²</option>
+                <option value="2.50">1/8" Black Acrylic — $2.50/ft²</option>
+                <option value="11.88">1/2" White Acrylic — $11.88/ft²</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- FOAM BOARD SUB-TYPE -->
+          <div id="foamboardOptions" style="display:none;margin-top:-10px;margin-bottom:16px;">
+            <div class="sec-title" style="margin-top:0;">Foam Board Type</div>
+            <div class="field">
+              <select id="foamboardType" onchange="calculate()">
+                <option value="0.41">3/16" Foam Board — $0.41/ft²</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- PVC SUB-TYPE -->
+          <div id="pvcOptions" style="display:none;margin-top:-10px;margin-bottom:16px;">
+            <div class="sec-title" style="margin-top:0;">PVC Type</div>
+            <div class="field">
+              <select id="pvcType" onchange="calculate()">
+                <option value="0.88">3mm White PVC — $0.88/ft²</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- GATOR BOARD SUB-TYPE -->
+          <div id="gatorboardOptions" style="display:none;margin-top:-10px;margin-bottom:16px;">
+            <div class="sec-title" style="margin-top:0;">Gator Board Type</div>
+            <div class="field">
+              <select id="gatorboardType" onchange="calculate()">
+                <option value="2.11">3/16" Gator Board — $2.11/ft²</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ACM SUB-TYPE -->
+          <div id="acmOptions" style="display:none;margin-top:-10px;margin-bottom:16px;">
+            <div class="sec-title" style="margin-top:0;">ACM Type</div>
+            <div class="field">
+              <select id="acmType" onchange="calculate()">
+                <option value="1.77">3mm White ACM — $1.77/ft²</option>
+                <option value="1.98">Brushed ACM — $1.98/ft²</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- ADD-ONS -->
+          <div class="sec-title">Add-Ons & Finishing</div>
+
+          <div class="toggle-row" id="toggle-laminate" onclick="toggleAddon('laminate')">
+            <div>
+              <div class="toggle-label">🛡️ Lamination</div>
+              <div class="toggle-sub">Matte or Gloss overlay protection</div>
+            </div>
+            <div class="toggle" id="t-laminate"></div>
+          </div>
+
+          <div class="toggle-row" id="toggle-grommets" onclick="toggleAddon('grommets')">
+            <div>
+              <div class="toggle-label">⭕ Grommets</div>
+              <div class="toggle-sub">Every 2 ft around perimeter</div>
+            </div>
+            <div class="toggle" id="t-grommets"></div>
+          </div>
+
+          <div class="toggle-row" id="toggle-hemming" onclick="toggleAddon('hemming')">
+            <div>
+              <div class="toggle-label">🪡 Hemming / Reinforced Edges</div>
+              <div class="toggle-sub">Welded border for banners</div>
+            </div>
+            <div class="toggle" id="t-hemming"></div>
+          </div>
+
+          <div class="toggle-row" id="toggle-cutting" onclick="toggleAddon('cutting')">
+            <div>
+              <div class="toggle-label">✂️ Contour / Die Cutting</div>
+              <div class="toggle-sub">Cut to custom shape</div>
+            </div>
+            <div class="toggle" id="t-cutting"></div>
+          </div>
+
+          <div class="toggle-row" id="toggle-mounting" onclick="toggleAddon('mounting')">
+            <div>
+              <div class="toggle-label">📌 Mounting / Installation</div>
+              <div class="toggle-sub">Labor & hardware included</div>
+            </div>
+            <div class="toggle" id="t-mounting"></div>
+          </div>
+
+          <div class="toggle-row" id="toggle-rush" onclick="toggleAddon('rush')">
+            <div>
+              <div class="toggle-label">⚡ Rush Order</div>
+              <div class="toggle-sub">+25% expedite fee</div>
+            </div>
+            <div class="toggle" id="t-rush"></div>
+          </div>
+
+          <!-- CUSTOM ADD-ON -->
+          <div class="sec-title">Custom Add-On</div>
+          <div class="field-row">
+            <div class="field">
+              <label>Add-On Name</label>
+              <input type="text" id="customName" placeholder="e.g. Design fee">
+            </div>
+            <div class="field">
+              <label>Amount ($)</label>
+              <div class="input-wrap">
+                <input type="number" id="customFee" placeholder="0.00" min="0" step="0.01">
+                <span class="unit">$</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDDLE COLUMN — QUOTE SUMMARY -->
+    <div>
+      <div class="panel">
+        <div class="panel-head">
+          <div class="icon">$</div>
+          <h2>Quote Summary</h2>
+        </div>
+        <div class="panel-body">
+
+          <!-- DIMENSIONS -->
+          <div class="sec-title" style="margin-top:0;">Dimensions</div>
+          <div class="field-row">
+            <div class="field">
+              <label>Width</label>
+              <div class="input-wrap">
+                <input type="number" id="width" placeholder="48" min="1" step="0.5">
+                <span class="unit">in</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Height</label>
+              <div class="input-wrap">
+                <input type="number" id="height" placeholder="36" min="1" step="0.5">
+                <span class="unit">in</span>
+              </div>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Quantity</label>
+              <div class="input-wrap">
+                <input type="number" id="qty" placeholder="1" min="1" value="1">
+                <span class="unit">pcs</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- INK COST -->
+          <div class="sec-title" style="margin-top:0;">Ink Coverage & Cost</div>
+          <div class="field-row">
+            <div class="field">
+              <label>Coverage %</label>
+              <div class="input-wrap">
+                <input type="number" id="inkCoverage" placeholder="100" value="100" min="0" max="100">
+                <span class="unit">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Rate ($/ft² @ 100%)</label>
+              <div class="input-wrap">
+                <input type="number" id="inkRate" placeholder="0.45" value="0.45" min="0" step="0.01">
+                <span class="unit">$/ft²</span>
+              </div>
+            </div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:-6px;margin-bottom:16px;line-height:1.5;">
+            Photo=100% · Spot color=30–50% · White ink=add separately
+          </div>
+
+          <!-- LABOR COST -->
+          <div class="sec-title">Labor Cost</div>
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-bottom:10px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);">
+              <div style="padding:8px 12px;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);border-right:1px solid var(--border);">SQ FOOTAGE</div>
+              <div style="padding:8px 12px;font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);">RATE / FT²</div>
+            </div>
+            <div class="labor-tier-row" id="lt-0" style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);">
+              <div style="padding:8px 12px;font-size:0.8rem;border-right:1px solid var(--border);">1 – 12 ft²</div>
+              <div style="padding:8px 12px;font-family:'DM Mono',monospace;font-size:0.8rem;">$3.00</div>
+            </div>
+            <div class="labor-tier-row" id="lt-1" style="display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--border);">
+              <div style="padding:8px 12px;font-size:0.8rem;border-right:1px solid var(--border);">13 – 25 ft²</div>
+              <div style="padding:8px 12px;font-family:'DM Mono',monospace;font-size:0.8rem;">$2.25</div>
+            </div>
+            <div class="labor-tier-row" id="lt-2" style="display:grid;grid-template-columns:1fr 1fr;">
+              <div style="padding:8px 12px;font-size:0.8rem;border-right:1px solid var(--border);">26 – 32 ft²</div>
+              <div style="padding:8px 12px;font-family:'DM Mono',monospace;font-size:0.8rem;">$1.75</div>
+            </div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);margin-bottom:16px;line-height:1.5;">
+            Rate auto-applies based on print area. Active tier highlighted.
+          </div>
+
+          <!-- SALE PRICE MARGIN -->
+          <div class="sec-title">Sale Price</div>
+          <div class="field-row" style="margin-bottom:16px;">
+            <div class="field">
+              <label>Margin %</label>
+              <div class="input-wrap">
+                <input type="number" id="saleMarkup" placeholder="30" value="30" min="0" max="99">
+                <span class="unit">%</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>Sale Price / Piece</label>
+              <div class="input-wrap">
+                <input type="number" id="salePriceOverride" placeholder="auto" min="0" step="0.01" style="color:var(--success);">
+                <span class="unit">$</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="toggle-row" id="toggle-adminfee" onclick="toggleAddon('adminfee')" style="margin-bottom:16px;">
+            <div>
+              <div class="toggle-label">🏢 Admin Fee</div>
+              <div class="toggle-sub">+15% applied to sale price (on by default)</div>
+            </div>
+            <div class="toggle" id="t-adminfee"></div>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:-10px;margin-bottom:16px;line-height:1.5;">
+            Enter a markup % or manually override the sale price per piece.
+          </div>
+
+          <!-- BULK DISCOUNT TIERS -->
+          <div class="sec-title">Bulk Discount Tiers</div>
+          <div style="font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+            Set qty thresholds and % off the sale price. Applied automatically based on quantity.
+          </div>
+          <div id="tierRows">
+            <div class="tier-row" data-tier="0">
+              <div class="input-wrap" style="flex:1;">
+                <input type="number" class="tier-qty" placeholder="5" min="1" step="1" style="border-radius:4px 0 0 4px;border-right:none;">
+                <span class="unit">pcs+</span>
+              </div>
+              <div class="input-wrap" style="flex:1;">
+                <input type="number" class="tier-disc" placeholder="5" min="0" max="99" step="0.5" style="border-radius:0 4px 4px 0;">
+                <span class="unit">% off</span>
+              </div>
+              <button onclick="removeTier(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 6px;line-height:1;flex-shrink:0;" title="Remove">✕</button>
+            </div>
+          </div>
+          <button onclick="addTier()" class="btn btn-outline" style="margin-top:8px;margin-bottom:0;padding:8px;font-size:0.65rem;">+ Add Tier</button>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN — BREAKDOWN -->
+    <div class="breakdown-col">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="icon">≡</div>
+          <h2>Breakdown</h2>
+        </div>
+        <div class="panel-body">
+
+          <div id="summaryItems"></div>
+
+          <!-- DUAL PRICE BOXES -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+            <div class="total-box" style="background:#f7f7f7;border-color:#e0e0e0;">
+              <div class="total-label">Total Cost</div>
+              <div class="total-amount" id="totalAmount" style="font-size:2rem;color:#333;">$—</div>
+              <div class="total-per" id="totalPer" style="font-size:0.6rem;"></div>
+            </div>
+            <div class="total-box" style="background:#f0f8f4;border-color:#b2d8c4;">
+              <div class="total-label">Total Sale Price</div>
+              <div class="total-amount" id="saleTotalAmount" style="font-size:2rem;color:var(--success);">$—</div>
+              <div class="total-per" id="saleTotalPer" style="font-size:0.6rem;"></div>
+            </div>
+          </div>
+
+          <div class="profit-bar-wrap">
+            <div class="profit-bar-label">
+              <span>Cost</span>
+              <span id="marginLabel">Margin: 0%</span>
+            </div>
+            <div class="profit-bar-track">
+              <div class="profit-bar-fill" id="marginBar" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div class="tag-row" id="activeTags"></div>
+
+          <button class="btn btn-outline" onclick="exportPDF()">⬇ Save as PDF</button>
+          <button class="btn btn-outline" onclick="copyQuote()">⎘ Copy Quote Text</button>
+          <button class="btn btn-outline" onclick="resetForm()">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const MATERIALS = [
+  {
+    id: 'foamboard',
+    name: 'Foam Board',
+    tag: 'Indoor Rigid',
+    icon: '🟫',
+    rate: 0.41,
+    desc: 'Lightweight indoor rigid substrate. Ideal for displays, posters, and presentations. Not UV or moisture resistant.',
+    addons: { laminate: true, cutting: true, mounting: true }
+  },
+  {
+    id: 'styrene',
+    name: 'Styrene',
+    tag: 'Indoor Rigid',
+    icon: '⬜',
+    rate: 0.88,
+    desc: 'Semi-rigid white plastic sheet. Great for point-of-purchase displays and indoor signage. Lightweight & economical.',
+    addons: { laminate: true, cutting: true, mounting: true }
+  },
+  {
+    id: 'acm',
+    name: 'ACM Board',
+    tag: 'Outdoor Rigid',
+    icon: '🔲',
+    rate: 9.50,
+    desc: 'Aluminum Composite Material — durable, flat, and weatherproof. Perfect for outdoor signs, building wraps, and long-term use.',
+    addons: { laminate: true, cutting: true, mounting: true }
+  },
+  {
+    id: 'coroplast',
+    name: 'Coroplast',
+    tag: 'Outdoor Rigid',
+    icon: '🟩',
+    rate: 0.27,
+    desc: 'Corrugated plastic — light, waterproof, and UV-stable. Yard signs, real estate signs, and short-term outdoor use.',
+    addons: { cutting: true, mounting: true }
+  },
+  {
+    id: 'banner',
+    name: 'Vinyl Banner',
+    tag: 'Flexible',
+    icon: '🏳️',
+    rate: 0.35,
+    desc: '13 oz scrim vinyl banner material. Wind-resistant, waterproof. Ideal for events, storefronts, and trade shows.',
+    addons: { grommets: true, hemming: true, mounting: true }
+  },
+  {
+    id: 'pvc',
+    name: 'PVC Board',
+    tag: 'Indoor/Outdoor',
+    icon: '🟦',
+    rate: 7.25,
+    desc: 'Expanded PVC (Sintra) — lightweight, rigid, and smooth. Great for indoor signs, trade show displays, and light outdoor use. Easy to cut and mount.',
+    addons: { laminate: true, cutting: true, mounting: true }
+  },
+  {
+    id: 'acrylic',
+    name: 'Acrylic',
+    tag: 'Premium Rigid',
+    icon: '💎',
+    rate: 14.00,
+    desc: 'Cast acrylic (Plexiglas) — crystal-clear or opaque, high-gloss premium substrate. Used for lobby signs, backlit displays, and luxury retail applications.',
+    addons: { laminate: false, cutting: true, mounting: true }
+  },
+  {
+    id: 'roughwrap',
+    name: 'Rough Wrap',
+    tag: 'Vehicle/Wall',
+    icon: '🚗',
+    rate: 1.37,
+    desc: 'Heavy-duty textured wrap vinyl designed for rough or uneven surfaces including brick walls, stucco, and fleet vehicles. Air-release channels for bubble-free application.',
+    addons: { laminate: true, cutting: true, mounting: true }
+  },
+  {
+    id: 'magnet',
+    name: 'Magnet',
+    tag: 'Flexible',
+    icon: '🧲',
+    rate: 1.59,
+    desc: 'Flexible magnetic sheet — easy to apply and remove from metal surfaces. Great for vehicle door signs, fridge displays, and temporary signage.',
+    addons: { laminate: true, cutting: true }
+  },
+  {
+    id: 'removablevinyl',
+    name: 'Removable Vinyl',
+    tag: 'Adhesive',
+    icon: '🏷️',
+    rate: 0.25,
+    desc: 'Low-tack removable vinyl — applies cleanly and removes without residue. Ideal for short-term promotions, window graphics, and retail displays.',
+    addons: { laminate: true, cutting: true }
+  },
+  {
+    id: 'windowperf',
+    name: 'Window Perf',
+    tag: 'Window',
+    icon: '🪟',
+    rate: 0.37,
+    desc: 'Perforated window vinyl with 50/50 or 60/40 see-through mesh. One-way visibility from outside — great for storefronts, vehicle rear windows, and privacy screens.',
+    addons: { laminate: true, cutting: true, mounting: true }
+  },
+  {
+    id: 'postergloss',
+    name: 'Poster Gloss',
+    tag: 'Paper',
+    icon: '🖼️',
+    rate: 0.32,
+    desc: 'High-gloss photo poster paper — vivid color reproduction with a shiny finish. Ideal for indoor posters, art prints, event signage, and point-of-sale displays.',
+    addons: { laminate: true, cutting: true, mounting: true }
+  },
+  {
+    id: 'bond20',
+    name: '20# Bond',
+    tag: 'Paper',
+    icon: '📄',
+    rate: 0.03,
+    desc: '20 lb bond paper — standard uncoated inkjet paper for CAD prints, blueprints, drafts, and general large format printing. Lightweight and economical.',
+    addons: { cutting: true, mounting: true }
+  },
+  {
+    id: 'gatorboard',
+    name: 'Gator Board',
+    tag: 'Indoor Rigid',
+    icon: '🟧',
+    rate: 2.11,
+    desc: 'Rigid foam board with a tough outer shell — more durable than standard foam board. Great for displays, mounting, and presentations.',
+    addons: { laminate: true, cutting: true, mounting: true }
+  }
+];
+
+const ADDONS = {
+  laminate:  { label: 'Lamination',          rate: 0.90 },  // per sq ft
+  grommets:  { label: 'Grommets',            rate: 15.00 }, // flat per piece
+  hemming:   { label: 'Hemming',             flat: null, perFt: 0.75 }, // per linear ft of perimeter
+  cutting:   { label: 'Contour Cutting',     rate: 0.80 },  // per sq ft
+  mounting:  { label: 'Mounting',            rate: 35.00 }, // flat per piece
+  rush:      { label: 'Rush Surcharge',      pct: 0.25 }    // 25% of subtotal
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let selectedMaterial = MATERIALS[0].id;
+let addons = { laminate: false, grommets: false, hemming: false, cutting: false, mounting: false, rush: false, adminfee: true };
+let quoteHistory = [];
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric', year:'numeric' });
+// Admin fee on by default
+document.getElementById('t-adminfee').classList.add('on');
+
+// Build material dropdown
+const matSelect = document.getElementById('materialSelect');
+MATERIALS.forEach(m => {
+  const opt = document.createElement('option');
+  opt.value = m.id;
+  opt.textContent = `${m.name}`;
+  if (m.id === selectedMaterial) opt.selected = true;
+  matSelect.appendChild(opt);
+});
+
+function selectMaterial(id) {
+  selectedMaterial = id;
+  updateMatInfo();
+  calculate();
+}
+
+function updateMatInfo() {
+  const m = MATERIALS.find(x => x.id === selectedMaterial);
+  document.getElementById('acrylicOptions').style.display = selectedMaterial === 'acrylic' ? 'block' : 'none';
+  document.getElementById('foamboardOptions').style.display = selectedMaterial === 'foamboard' ? 'block' : 'none';
+  document.getElementById('pvcOptions').style.display = selectedMaterial === 'pvc' ? 'block' : 'none';
+  document.getElementById('acmOptions').style.display = selectedMaterial === 'acm' ? 'block' : 'none';
+  document.getElementById('gatorboardOptions').style.display = selectedMaterial === 'gatorboard' ? 'block' : 'none';
+}
+
+updateMatInfo();
+
+function toggleAddon(key) {
+  addons[key] = !addons[key];
+  const t = document.getElementById('t-' + key);
+  if (addons[key]) t.classList.add('on'); else t.classList.remove('on');
+  calculate();
+}
+
+// ─── CALCULATION ──────────────────────────────────────────────────────────────
+function calculate() {
+  const widthIn  = parseFloat(document.getElementById('width').value) || 0;
+  const heightIn = parseFloat(document.getElementById('height').value) || 0;
+  const qty      = Math.max(1, parseInt(document.getElementById('qty').value) || 1);
+  const minCharge = 0;
+  const customFee = parseFloat(document.getElementById('customFee').value) || 0;
+
+  const mat = MATERIALS.find(x => x.id === selectedMaterial);
+  const sqFtPerPiece = (widthIn * heightIn) / 144;          // single piece area
+  const totalSqFt    = sqFtPerPiece * qty;                   // full order area
+  const linearFt     = (2 * (widthIn + heightIn)) / 12;     // perimeter of one piece
+  const baseRate = selectedMaterial === 'acrylic'
+    ? parseFloat(document.getElementById('acrylicType').value) || mat.rate
+    : selectedMaterial === 'foamboard'
+    ? parseFloat(document.getElementById('foamboardType').value) || mat.rate
+    : selectedMaterial === 'pvc'
+    ? parseFloat(document.getElementById('pvcType').value) || mat.rate
+    : selectedMaterial === 'acm'
+    ? parseFloat(document.getElementById('acmType').value) || mat.rate
+    : selectedMaterial === 'gatorboard'
+    ? parseFloat(document.getElementById('gatorboardType').value) || mat.rate
+    : mat.rate;
+
+  const materialCost      = sqFtPerPiece * baseRate;        // per piece
+  const materialCostTotal = materialCost * qty;              // full order
+
+  // Ink cost — based on TOTAL sq footage, divided back to show per piece
+  const inkCoveragePct = Math.min(100, Math.max(0, parseFloat(document.getElementById('inkCoverage').value) || 80)) / 100;
+  const inkRate        = parseFloat(document.getElementById('inkRate').value) || 0;
+  const inkCostTotal   = totalSqFt * inkCoveragePct * inkRate;
+  const inkCost        = inkCostTotal / qty;   // per piece for breakdown display
+
+  // Labor cost — tiered by TOTAL sq footage of the order
+  const LABOR_TIERS = [
+    { max: 12,  rate: 3.00 },
+    { max: 25,  rate: 2.25 },
+    { max: 32,  rate: 1.75 },
+  ];
+  const laborTier  = LABOR_TIERS.find(t => totalSqFt <= t.max) || LABOR_TIERS[LABOR_TIERS.length - 1];
+  const laborRate  = laborTier.rate;
+  const laborCost  = sqFtPerPiece * laborRate;              // per piece
+
+  // Highlight active labor tier
+  document.querySelectorAll('.labor-tier-row').forEach((el, i) => {
+    el.classList.toggle('active', LABOR_TIERS[i] === laborTier);
+  });
+
+  // Add-on costs (per piece)
+  let addonCost = 0;
+  const addonLines = [];
+
+  if (addons.laminate && mat.addons?.laminate) {
+    const c = sqFtPerPiece * ADDONS.laminate.rate;
+    addonCost += c;
+    addonLines.push({ label: 'Lamination', val: c });
+  }
+  if (addons.grommets && mat.addons?.grommets) {
+    addonCost += ADDONS.grommets.rate;
+    addonLines.push({ label: 'Grommets', val: ADDONS.grommets.rate });
+  }
+  if (addons.hemming && mat.addons?.hemming) {
+    const c = linearFt * ADDONS.hemming.perFt;
+    addonCost += c;
+    addonLines.push({ label: 'Hemming', val: c });
+  }
+  if (addons.cutting && mat.addons?.cutting) {
+    const c = sqFtPerPiece * ADDONS.cutting.rate;
+    addonCost += c;
+    addonLines.push({ label: 'Contour Cutting', val: c });
+  }
+  if (addons.mounting && mat.addons?.mounting) {
+    addonCost += ADDONS.mounting.rate;
+    addonLines.push({ label: 'Mounting', val: ADDONS.mounting.rate });
+  }
+
+  // Rush on subtotal
+  let rushFee = 0;
+  if (addons.rush) {
+    const sub = materialCost + inkCost + addonCost;
+    rushFee = sub * ADDONS.rush.pct;
+    addonLines.push({ label: 'Rush Surcharge (25%)', val: rushFee });
+  }
+
+  // TRUE cost per piece — no markup, just raw costs
+  const costPerPiece = materialCost + inkCost + laborCost + addonCost + rushFee;
+
+  // Total cost = (cost/pc × qty) + custom one-time fee
+  const costTotal = (costPerPiece * qty) + customFee;
+
+  // Sale price — margin based: Sale = Cost ÷ (1 - margin%)
+  const saleMarginPct = Math.min(0.99, parseFloat(document.getElementById('saleMarkup').value) / 100 || 0);
+  const salePriceOverride = parseFloat(document.getElementById('salePriceOverride').value) || null;
+  let salePricePerPiece = salePriceOverride !== null
+    ? salePriceOverride
+    : saleMarginPct > 0 ? costPerPiece / (1 - saleMarginPct) : costPerPiece;
+
+  // Bulk discount — find best matching tier for current qty
+  const tiers = getBulkTiers().filter(t => qty >= t.qty).sort((a,b) => b.qty - a.qty);
+  const activeTier = tiers[0] || null;
+  const bulkDiscountPct = activeTier ? activeTier.disc / 100 : 0;
+  const bulkDiscountAmt = salePricePerPiece * bulkDiscountPct;
+  salePricePerPiece = salePricePerPiece - bulkDiscountAmt;
+
+  // Admin fee: +15% on sale price
+  const adminFeeAmt = addons.adminfee ? salePricePerPiece * 0.15 : 0;
+  salePricePerPiece = salePricePerPiece + adminFeeAmt;
+
+  const saleProfitPerPiece = salePricePerPiece - costPerPiece;
+  const saleGrandTotal = salePricePerPiece * qty + customFee;
+
+  // ── Render summary ──
+  const container = document.getElementById('summaryItems');
+  let html = '';
+
+  const row = (label, val, accent, color) =>
+    `<div class="summary-item">
+      <span class="summary-label">${label}</span>
+      <span class="summary-val" style="${color ? 'color:'+color : accent ? 'color:var(--accent)' : ''}">${val}</span>
+    </div>`;
+
+  const fmt = v => '$' + v.toFixed(2);
+
+  html += row('Material', mat.name);
+  html += row('Quantity', qty + ' pcs');
+  html += row('Size', widthIn && heightIn ? `${widthIn}" × ${heightIn}" (${totalSqFt.toFixed(2)} ft² total)` : '—');
+  html += row('Square Foot Cost', fmt(baseRate) + ' / ft²');
+  html += row('Material Cost', fmt(materialCostTotal) + ' total');
+  if (inkCost > 0) html += row('Ink Cost', fmt(inkCostTotal) + ' total');
+  if (laborCost > 0) html += row(`Labor ($${laborRate.toFixed(2)}/ft²)`, fmt(laborCost * qty) + ' total');
+
+  addonLines.forEach(l => {
+    html += row(l.label, fmt(l.val) + ' / pc');
+  });
+
+  if (bulkDiscountPct > 0) html += row(`Bulk Discount (${(bulkDiscountPct*100).toFixed(1)}% off)`, '-' + fmt(bulkDiscountAmt) + ' / pc', false, 'var(--accent)');
+  html += row('Total Cost', fmt(costPerPiece * qty), false, 'var(--muted)');
+  html += row('Cost / Piece', fmt(costPerPiece), true);
+  if (customFee > 0) {
+    const name = document.getElementById('customName').value || 'Custom Add-On';
+    html += row(name + ' (flat fee)', fmt(customFee));
+  }
+
+  html += `<div class="summary-item" style="border-top:1px solid rgba(76,175,121,0.3);margin-top:4px;padding-top:12px;">
+    <span class="summary-label">Sale Price / Piece</span>
+    <span class="summary-val" style="color:var(--success);font-weight:500;">${fmt(salePricePerPiece)}</span>
+  </div>`;
+  if (adminFeeAmt > 0) {
+    html += `<div class="summary-item">
+      <span class="summary-label">Admin Fee (15%)</span>
+      <span class="summary-val" style="color:var(--accent2);">${fmt(adminFeeAmt)} / pc</span>
+    </div>`;
+  }
+  html += `<div class="summary-item">
+    <span class="summary-label">Profit / Piece</span>
+    <span class="summary-val" style="color:var(--success);">${fmt(saleProfitPerPiece)}</span>
+  </div>`;
+
+  container.innerHTML = html;
+
+  // Cost totals
+  document.getElementById('totalAmount').textContent = costTotal > 0 ? fmt(costTotal) : '$—';
+  document.getElementById('totalPer').textContent = qty > 1 ? fmt(costPerPiece) + ' / pc' : '';
+
+  // Sale totals
+  document.getElementById('saleTotalAmount').textContent = saleGrandTotal > 0 ? fmt(saleGrandTotal) : '$—';
+  document.getElementById('saleTotalPer').textContent = qty > 1 ? fmt(salePricePerPiece) + ' / pc' : '';
+
+  // Margin bar — profit margin based on sale price
+  const margin = salePricePerPiece > 0 ? saleProfitPerPiece / salePricePerPiece : 0;
+  const pct = Math.min(100, Math.max(0, margin * 100));
+  document.getElementById('marginBar').style.width = pct + '%';
+  document.getElementById('marginLabel').textContent = 'Margin: ' + pct.toFixed(0) + '%';
+
+  // Tags
+  const tagsEl = document.getElementById('activeTags');
+  let tags = `<span class="tag active">${mat.tag}</span>`;
+  if (addons.rush) tags += `<span class="tag active">Rush</span>`;
+  if (addons.adminfee) tags += `<span class="tag active">Admin Fee</span>`;
+  if (sqFtPerPiece < 1) tags += `<span class="tag">Small print</span>`;
+  if (qty >= 5) tags += `<span class="tag active">Bulk (${qty}x)</span>`;
+  if (activeTier) tags += `<span class="tag active">Discount ${activeTier.disc}% off</span>`;
+  tagsEl.innerHTML = tags;
+
+  return {
+    mat: mat.name,
+    size: widthIn && heightIn ? `${widthIn}"×${heightIn}"` : '',
+    sqFt: totalSqFt.toFixed(2),
+    qty,
+    total: costTotal,
+    perPiece: costPerPiece,
+    saleTotal: saleGrandTotal,
+    salePer: salePricePerPiece
+  };
+}
+
+function exportPDF() {
+  const data = calculate();
+  if (!data.size || data.total === 0) { alert('Enter dimensions to generate a quote.'); return; }
+
+  const projectName = document.getElementById('projectName').value || 'Untitled Project';
+  const mat = MATERIALS.find(x => x.id === selectedMaterial);
+  const fmt = v => '$' + v.toFixed(2);
+  const date = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  // Collect breakdown rows from the summary
+  const rows = [...document.querySelectorAll('#summaryItems .summary-item')].map(el => {
+    const label = el.querySelector('.summary-label')?.textContent || '';
+    const val   = el.querySelector('.summary-val')?.textContent || '';
+    const color = el.querySelector('.summary-val')?.style.color || '';
+    return { label, val, color };
+  });
+
+  const rowsHTML = rows.map(r =>
+    `<tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;color:#555;font-size:13px;">${r.label}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-family:monospace;font-size:13px;color:${r.color || '#111'};font-weight:${r.color ? '600' : '400'};">${r.val}</td>
+    </tr>`
+  ).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Quote — ${projectName}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #111; padding: 48px; max-width: 720px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #f5c842; padding-bottom: 20px; margin-bottom: 28px; }
+    .brand { font-size: 28px; font-weight: 800; letter-spacing: 1px; color: #111; }
+    .brand span { color: #f5c842; }
+    .meta { text-align: right; font-size: 12px; color: #888; line-height: 1.8; }
+    .project { font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #111; }
+    .section-title { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #aaa; margin: 24px 0 10px; font-weight: 600; }
+    table { width: 100%; border-collapse: collapse; background: #fafafa; border-radius: 6px; overflow: hidden; }
+    .totals { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+    .total-card { border-radius: 8px; padding: 18px; text-align: center; }
+    .total-card.cost { background: #f5f5f8; border: 1px solid #e0e0e8; }
+    .total-card.sale { background: #f0faf5; border: 1px solid #a8dfc0; }
+    .total-card .lbl { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #999; margin-bottom: 6px; }
+    .total-card .amt { font-size: 32px; font-weight: 800; }
+    .total-card.cost .amt { color: #666; }
+    .total-card.sale .amt { color: #2e9e60; }
+    .total-card .sub { font-size: 11px; color: #aaa; margin-top: 4px; font-family: monospace; }
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #eee; font-size: 11px; color: #bbb; text-align: center; }
+    @media print {
+      body { padding: 24px; }
+      button { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand">Solutions <span>&</span> More</div>
+      <div style="font-size:11px;color:#aaa;margin-top:2px;letter-spacing:2px;">CALCULATOR</div>
+    </div>
+    <div class="meta">
+      <div>${date}</div>
+      <div>Quote #${Math.floor(Math.random()*90000)+10000}</div>
+    </div>
+  </div>
+
+  <div class="project">${projectName}</div>
+  <div style="font-size:13px;color:#888;margin-top:4px;">${mat.name} &nbsp;·&nbsp; ${data.size} &nbsp;·&nbsp; ${data.qty} pc${data.qty > 1 ? 's' : ''}</div>
+
+  <div class="section-title">Cost Breakdown</div>
+  <table>${rowsHTML}</table>
+
+  <div class="totals">
+    <div class="total-card cost">
+      <div class="lbl">Total Cost</div>
+      <div class="amt">${fmt(data.total)}</div>
+      ${data.qty > 1 ? `<div class="sub">${fmt(data.perPiece)} / pc</div>` : ''}
+    </div>
+    <div class="total-card sale">
+      <div class="lbl">Total Sale Price</div>
+      <div class="amt">${fmt(data.saleTotal)}</div>
+      ${data.qty > 1 ? `<div class="sub">${fmt(data.salePer)} / pc</div>` : ''}
+    </div>
+  </div>
+
+  <div class="footer">Generated by LargeFormat Calc &nbsp;·&nbsp; ${new Date().toLocaleString()}</div>
+
+  <script>window.onload = () => window.print();<\/script>
+</body>
+</html>`);
+  win.document.close();
+}
+
+// ─── SAVE QUOTE ───────────────────────────────────────────────────────────────
+function saveQuote() {
+  const data = calculate();
+  if (!data.size || data.total === 0) {
+    alert('Please enter dimensions first.');
+    return;
+  }
+  quoteHistory.unshift({ ...data, projectName: document.getElementById('projectName').value || 'Untitled', time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) });
+  renderHistory();
+}
+
+function renderHistory() {
+  const panel = document.getElementById('historyPanel');
+  if (quoteHistory.length === 0) {
+    panel.innerHTML = '<div class="empty-state">No quotes saved yet.<br>Save a quote to see it here.</div>';
+    return;
+  }
+  panel.innerHTML = quoteHistory.map((q, i) =>
+    `<div class="history-item" onclick="loadQuoteHint(${i})">
+      <span class="hist-mat">${q.projectName || q.mat}</span>
+      <span class="hist-size">${q.size} × ${q.qty}pc</span>
+      <span class="hist-price">$${q.saleTotal.toFixed(2)}</span>
+    </div>`
+  ).join('');
+}
+
+function loadQuoteHint(i) {
+  const q = quoteHistory[i];
+  // Just flash the price; full restore would need more state
+  alert(`Quote: ${q.mat}\n${q.size} × ${q.qty} pcs\nTotal: $${q.total.toFixed(2)}\nPer piece: $${q.perPiece.toFixed(2)}`);
+}
+
+function copyQuote() {
+  const data = calculate();
+  if (!data.size || data.total === 0) { alert('Enter dimensions to generate a quote.'); return; }
+  const projectName = document.getElementById('projectName').value || 'Untitled Project';
+  const txt = `LARGE FORMAT PRINT QUOTE
+Project: ${projectName}
+Material: ${data.mat}
+Size: ${data.size} (${data.sqFt} sq ft)
+Qty: ${data.qty} pcs
+Cost / Piece: $${data.perPiece.toFixed(2)}
+Total Cost: $${data.total.toFixed(2)}
+Sale Price / Piece: $${data.salePer.toFixed(2)}
+Total Sale Price: $${data.saleTotal.toFixed(2)}
+Generated: ${new Date().toLocaleString()}`;
+
+  // Reliable cross-browser copy using textarea fallback
+  const el = document.createElement('textarea');
+  el.value = txt;
+  el.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  try {
+    document.execCommand('copy');
+    alert('Quote copied to clipboard!');
+  } catch(e) {
+    // Final fallback — show text for manual copy
+    prompt('Copy this quote:', txt);
+  }
+  document.body.removeChild(el);
+}
+
+function resetForm() {
+  document.getElementById('projectName').value = '';
+  document.getElementById('width').value = '';
+  document.getElementById('height').value = '';
+  document.getElementById('qty').value = '1';
+  document.getElementById('saleMarkup').value = '30';
+  document.getElementById('salePriceOverride').value = '';
+  document.getElementById('inkCoverage').value = '100';
+  document.getElementById('inkRate').value = '0.45';
+  document.getElementById('customFee').value = '';
+  document.getElementById('customName').value = '';
+  Object.keys(addons).forEach(k => {
+    addons[k] = false;
+    document.getElementById('t-' + k)?.classList.remove('on');
+  });
+  // Admin fee always on by default
+  addons.adminfee = true;
+  document.getElementById('t-adminfee').classList.add('on');
+  calculate();
+}
+
+// ─── BULK TIER MANAGEMENT ─────────────────────────────────────────────────────
+function getBulkTiers() {
+  return [...document.querySelectorAll('.tier-row')].map(row => ({
+    qty:  parseFloat(row.querySelector('.tier-qty').value) || 0,
+    disc: parseFloat(row.querySelector('.tier-disc').value) || 0
+  })).filter(t => t.qty > 0 && t.disc > 0);
+}
+
+function addTier() {
+  const container = document.getElementById('tierRows');
+  const div = document.createElement('div');
+  div.className = 'tier-row';
+  div.innerHTML = `
+    <div class="input-wrap" style="flex:1;">
+      <input type="number" class="tier-qty" placeholder="10" min="1" step="1" style="border-radius:4px 0 0 4px;border-right:none;">
+      <span class="unit">pcs+</span>
+    </div>
+    <div class="input-wrap" style="flex:1;">
+      <input type="number" class="tier-disc" placeholder="10" min="0" max="99" step="0.5" style="border-radius:0 4px 4px 0;">
+      <span class="unit">% off</span>
+    </div>
+    <button onclick="removeTier(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:0 6px;line-height:1;flex-shrink:0;" title="Remove">✕</button>
+  `;
+  div.querySelectorAll('input').forEach(el => el.addEventListener('input', calculate));
+  container.appendChild(div);
+  calculate();
+}
+
+function removeTier(btn) {
+  btn.closest('.tier-row').remove();
+  calculate();
+}
+
+// Wire existing tier inputs
+document.querySelectorAll('.tier-qty, .tier-disc').forEach(el => el.addEventListener('input', calculate));
+
+// ─── LIVE CALC ────────────────────────────────────────────────────────────────
+document.querySelectorAll('input').forEach(el => el.addEventListener('input', calculate));
+calculate();
+</script>
+</body>
+</html>
